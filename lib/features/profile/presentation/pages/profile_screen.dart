@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:digl/features/settings/presentation/pages/settings_screen.dart';
+import 'package:digl/services/logout_service.dart';
 
 import '../../../appointments/presentation/pages/appointments_list_screen.dart';
 import '../../../medications/presentation/pages/medication_form.dart';
@@ -85,9 +86,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _logout() async {
-    await _auth.signOut();
-    if (!mounted) return;
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    await LogoutService.showLogoutConfirmationDialog(context);
   }
 
   Future<void> _openSupport() async {

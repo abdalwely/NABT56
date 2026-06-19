@@ -31,6 +31,12 @@ class UserModel {
   final bool? isOnline;
   final String? fcmToken;
   final Timestamp? lastSeen;
+  final double? minSessionPrice;
+  final double? maxSessionPrice;
+  final double? latitude;
+  final double? longitude;
+  final String? address;
+  final int? reviewCount;
 
   UserModel({
     required this.uid,
@@ -60,6 +66,12 @@ class UserModel {
     this.isOnline = false,
     this.fcmToken,
     this.lastSeen,
+    this.minSessionPrice,
+    this.maxSessionPrice,
+    this.latitude,
+    this.longitude,
+    this.address,
+    this.reviewCount,
   });
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
@@ -92,6 +104,12 @@ class UserModel {
       isOnline: data['isOnline'] as bool? ?? false,
       fcmToken: data['fcmToken'] as String?,
       lastSeen: data['lastSeen'] is Timestamp ? data['lastSeen'] : null,
+      minSessionPrice: (data['minSessionPrice'] as num?)?.toDouble(),
+      maxSessionPrice: (data['maxSessionPrice'] as num?)?.toDouble(),
+      latitude: (data['latitude'] as num?)?.toDouble(),
+      longitude: (data['longitude'] as num?)?.toDouble(),
+      address: (data['address'] ?? data['clinicAddress'])?.toString(),
+      reviewCount: data['reviewCount'] as int?,
     );
   }
 
@@ -125,6 +143,12 @@ class UserModel {
     if (hasLicenseDocuments != null) map['hasLicenseDocuments'] = hasLicenseDocuments;
     if (workplaces != null) map['workplaces'] = workplaces;
     if (fcmToken != null) map['fcmToken'] = fcmToken;
+    if (minSessionPrice != null) map['minSessionPrice'] = minSessionPrice;
+    if (maxSessionPrice != null) map['maxSessionPrice'] = maxSessionPrice;
+    if (latitude != null) map['latitude'] = latitude;
+    if (longitude != null) map['longitude'] = longitude;
+    if (address != null) map['address'] = address;
+    if (reviewCount != null) map['reviewCount'] = reviewCount;
 
     return map;
   }

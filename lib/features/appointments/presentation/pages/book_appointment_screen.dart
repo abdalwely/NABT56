@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/widgets/premium_ui.dart';
 import '../../../home/presentation/pages/home_screen.dart';
+import '../../../maps/widgets/doctor_location_map_card.dart';
 
 class BookAppointmentScreen extends StatefulWidget {
   final String? initialDoctorName;
@@ -573,7 +574,10 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
       margin: const EdgeInsets.only(top: 4),
       padding: const EdgeInsets.all(16),
       radius: 28,
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
           children: [
             CircleAvatar(
               radius: 32,
@@ -610,6 +614,18 @@ class _BookAppointmentScreenState extends State<BookAppointmentScreen> {
             ),
           ],
         ),
+          const SizedBox(height: 12),
+          Text(
+            'سعر الجلسة: ${doctor['minSessionPrice'] ?? 0} - ${doctor['maxSessionPrice'] ?? 0}',
+            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          DoctorLocationMapCard(
+            latitude: (doctor['latitude'] as num?)?.toDouble(),
+            longitude: (doctor['longitude'] as num?)?.toDouble(),
+            address: (doctor['address'] ?? doctor['clinicAddress'])?.toString(),
+          ),
+        ],
+      ),
     );
   }
 

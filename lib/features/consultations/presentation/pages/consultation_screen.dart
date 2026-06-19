@@ -427,7 +427,41 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
 
   // ========== MESSAGE SENDING ==========
 
-// عند إرسال رسالة جديدة، تحديث حالة الرسائل الجديدة
+Future<DocumentSnapshot<Map<String, dynamic>>> _consultationDoc() =>
+      _firestore.collection('consultations').doc(widget.consultationId).get();
+
+  bool _isBlockedData(Map<String, dynamic>? data) {
+    final blockedBy = (data?['blockedBy'] as List?)?.cast<String>() ?? const <String>[];
+    return blockedBy.isNotEmpty;
+  }
+
+  Future<bool> _ensureChatNotBlocked() async {
+    final snapshot = await _consultationDoc();
+    final data = snapshot.data();
+    if (_isBlockedData(data)) {
+      final blockedBy = ((data?['blockedBy'] as List?)?.cast<String>() ?? const <String>[]);
+      final current = _auth.currentUser?.uid;
+      final message = blockedBy.contains(current)
+          ? 'لقد قمت بحظر هذه المحادثة. قم بإلغاء الحظر لإرسال رسائل جديدة.'
+          : 'لا يمكن إرسال رسائل جديدة لأن الطرف الآخر قام بحظر هذه المحادثة.';
+      _showErrorSnackbar(message);
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _toggleBlockConversation({required bool block}) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    await _firestore.collection('consultations').doc(widget.consultationId).set({
+      'blockedBy': block ? FieldValue.arrayUnion([user.uid]) : FieldValue.arrayRemove([user.uid]),
+      'isBlocked': block,
+      'blockUpdatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    _showSuccessSnackbar(block ? 'تم حظر المستخدم. لن يستطيع أي طرف إرسال رسائل.' : 'تم إلغاء الحظر ويمكن متابعة المحادثة.');
+  }
+
+  // عند إرسال رسالة جديدة، تحديث حالة الرسائل الجديدة
   Future<void> _sendMessage() async {
     if (_messageController.text.trim().isEmpty && selectedMedia == null) return;
     if (isSending) return;
@@ -439,6 +473,10 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
 
     final user = _auth.currentUser;
     if (user == null) {
+      setState(() => isSending = false);
+      return;
+    }
+    if (!await _ensureChatNotBlocked()) {
       setState(() => isSending = false);
       return;
     }
@@ -491,7 +529,7 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
           .collection('messages')
           .add({
         'senderId': user.uid,
-        'senderName': getUserName(widget.isDoctor ? doctorData : patientData, widget.isDoctor),
+        'senderName': '${widget.isDoctor ? 'الطبيب' : 'المريض'}: ${getUserName(widget.isDoctor ? doctorData : patientData, widget.isDoctor)}',
         'senderImage': getUserImageUrl(widget.isDoctor ? doctorData : patientData),
         'text': _messageController.text.trim(),
         'fileUrl': downloadUrl,
@@ -2072,7 +2110,7 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
 
   PreferredSizeWidget _buildAppBar(ThemeData theme, bool isDarkMode) {
     final userData = widget.isDoctor ? patientData : doctorData;
-    final contactName = getUserName(userData, widget.isDoctor);
+    final contactName = '${widget.isDoctor ? 'المريض' : 'الطبيب'}: ${getUserName(userData, widget.isDoctor)}';
     final userImageUrl = getUserImageUrl(userData);
 
     return AppBar(
@@ -2202,6 +2240,27 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
                   Icon(Icons.notifications_none, color: theme.primaryColor),
                   const SizedBox(width: 8),
                   const Text('إعدادات الإشعارات'),
+                ],
+              ),
+            ),
+            const PopupMenuDivider(),
+            PopupMenuItem(
+              value: 'block',
+              child: Row(
+                children: [
+                  Icon(Icons.block, color: theme.colorScheme.error),
+                  const SizedBox(width: 8),
+                  const Text('حظر المستخدم'),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'unblock',
+              child: Row(
+                children: [
+                  Icon(Icons.lock_open, color: theme.colorScheme.secondary),
+                  const SizedBox(width: 8),
+                  const Text('إلغاء الحظر'),
                 ],
               ),
             ),
@@ -2477,6 +2536,12 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
         break;
       case 'notifications':
         _showNotificationSettings(context);
+        break;
+      case 'block':
+        _toggleBlockConversation(block: true);
+        break;
+      case 'unblock':
+        _toggleBlockConversation(block: false);
         break;
       case 'delete':
         _showDeleteConfirmationDialog(context);
