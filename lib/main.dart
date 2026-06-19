@@ -42,6 +42,7 @@ import 'Provider/auth_gate.dart';
 import 'core/config/medical_theme.dart';
 import 'core/config/theme_provider.dart';
 import 'features/admin/presentation/pages/admin_login_screen.dart';
+import 'features/ai_chat/presentation/pages/medical_ai_chat_screen.dart';
 import 'features/auth/presentation/pages/verification_pending_screen.dart';
 import 'features/doctor/presentation/pages/doctor_dashboard_screen.dart';
 import 'features/medications/presentation/pages/medication_reminder_screen.dart';
@@ -214,6 +215,7 @@ class MyApp extends StatelessWidget {
             '/doctor_dashboard': (_) => const DoctorDashboardScreen(),
             '/profill': (_) => const ProfileScreen(),
             '/health_questions': (_) => const HealthQuestionsScreen(),
+            '/medical_ai_chat': (_) => const MedicalAiChatScreen(),
             '/admin': (_) => const AdminAuthGate(),
           },
 

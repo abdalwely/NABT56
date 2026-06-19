@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../../../../core/config/medical_theme.dart';
 import '../../../../core/config/theme_helper.dart';
+import '../../../maps/presentation/pages/location_picker_screen.dart';
 //import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -86,6 +87,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _licenseNumberController = TextEditingController();
   final _workplaceNameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _minSessionPriceController = TextEditingController();
+  final _maxSessionPriceController = TextEditingController();
+  PickedDoctorLocation? _doctorLocation;
 
   PlatformFile? _licenseDocument;
   PlatformFile? _profileImage;
@@ -150,6 +154,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _licenseNumberController.dispose();
     _workplaceNameController.dispose();
     _phoneController.dispose();
+    _minSessionPriceController.dispose();
+    _maxSessionPriceController.dispose();
     super.dispose();
   }
 
@@ -567,6 +573,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  Future<void> _pickDoctorLocation() async {
+    final result = await Navigator.push<PickedDoctorLocation>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationPickerScreen(initialLocation: _doctorLocation),
+      ),
+    );
+    if (result != null) setState(() => _doctorLocation = result);
+  }
+
+  String? _validatePrice(String? value) {
+    if (_selectedAccountType != 'doctor') return null;
+    final price = double.tryParse((value ?? '').trim());
+    if (price == null || price < 0) return 'أدخل سعراً صحيحاً';
+    final min = double.tryParse(_minSessionPriceController.text.trim());
+    final max = double.tryParse(_maxSessionPriceController.text.trim());
+    if (min != null && max != null && min > max) return 'أقل سعر يجب أن يكون أصغر من أعلى سعر';
+    return null;
+  }
+
   Future<void> _saveUserDataToFirestore(
     String uid,
     String fullName,
@@ -621,6 +647,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'accountStatus': 'Pending',
           'doctorRequestStatus': 'pending',
           'doctorRequestId': uid,
+          'minSessionPrice': double.tryParse(_minSessionPriceController.text.trim()) ?? 0,
+          'maxSessionPrice': double.tryParse(_maxSessionPriceController.text.trim()) ?? 0,
+          'latitude': _doctorLocation?.latitude,
+          'longitude': _doctorLocation?.longitude,
+          'address': _doctorLocation?.address ?? '',
+          'clinicAddress': _doctorLocation?.address ?? '',
         });
       }
 
@@ -644,7 +676,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'licenseDocument': _licenseDocument?.name ?? '',
           'licenseNumber': licenseNumber,
           'clinicName': _workplaces.isNotEmpty ? _workplaces.first.name : '',
-          'clinicAddress': '',
+          'clinicAddress': _doctorLocation?.address ?? '',
           'workplaces': workplaces,
           'profileImageUrl': _photoURL ?? '',
           'photoURL': _photoURL ?? '',
@@ -1151,6 +1183,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       padding: EdgeInsets.only(top: 8),
                       child: LinearProgressIndicator(),
                     ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _minSessionPriceController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(labelText: 'أقل سعر جلسة', border: OutlineInputBorder()),
+                          validator: _validatePrice,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _maxSessionPriceController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(labelText: 'أعلى سعر جلسة', border: OutlineInputBorder()),
+                          validator: _validatePrice,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: _pickDoctorLocation,
+                    icon: const Icon(Icons.map_outlined),
+                    label: Text(_doctorLocation == null ? 'اختيار موقع العيادة من الخريطة' : 'تم اختيار الموقع: ${_doctorLocation!.address}'),
+                  ),
                   const SizedBox(height: 16),
                   const Text(
                     'أماكن العمل',
